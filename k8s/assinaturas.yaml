@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-assinaturas
+  namespace: apps-space
+  labels:
+    tier: backend
+    app: assinaturas
+spec:
+  selector:
+    matchLabels:
+      name: be-assinaturas
+      app: assinaturas
+  strategy:
+    type: Recreate
+  replicas: 2
+  template:
+    metadata:
+      name: be-assinaturas
+      labels:
+        app: assinaturas
+        name: be-assinaturas
+    spec:
+      containers:
+        - name: be-assinaturas
+          image: jedi31/assinaturas:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet: 
+              path: /hc/alive
+              port: 80
+            initialDelaySeconds: 3 # only tests after 3 seconds
+            periodSeconds: 5 # frequency 
+            failureThreshold: 10 # makes 10 tests before completelly fail
+          readinessProbe:
+            httpGet:
+              path: /hc/health
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 10            
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: svc-assinaturas
+  namespace: apps-space
+spec:
+  selector:
+    name: be-assinaturas
+    app: assinaturas
+  type: ClusterIP
+  ports:
+    - name: be-assinaturas-http
+      port: 80
+      targetPort: 80
+
+---
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   name:  svc-assinaturas
+#   namespace: apps-space
+# spec:
+#   type:  NodePort
+#   ports:
+#   - name:  be-assinaturas-http
+#     port: 80
+#     targetPort: 80
+#     nodePort: 30008
+#   selector:
+#     name:  be-assinaturas
+#     app: assinaturas
+
+# kubectl port-forward be-assinaturas-58c4b5c899-6c5tz 5274:80
+# http://localhost:30008/WeatherForecast

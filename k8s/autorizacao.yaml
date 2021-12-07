@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-autorizacao
+  namespace: apps-space
+  labels:
+    tier: backend
+    app: autorizacao
+spec:
+  selector:
+    matchLabels:
+      name:  be-autorizacao
+      app: autorizacao
+  strategy:
+    type: Recreate
+  replicas: 2
+  template:
+    metadata:
+      name: be-autorizacao
+      labels:
+        app: autorizacao
+        name:  be-autorizacao
+    spec:
+      containers:
+      - name: be-autorizacao
+        image: jedi31/autorizacao:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet: 
+            path: /hc/alive
+            port: 80
+          initialDelaySeconds: 3 # only tests after 3 seconds
+          periodSeconds: 5 # frequency 
+          failureThreshold: 10 # makes 10 tests before completelly fail
+        readinessProbe:
+          httpGet:
+            path: /hc/health
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          failureThreshold: 10
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name:  svc-autorizacao
+  namespace: apps-space
+spec:
+  selector:
+    name:  be-autorizacao
+  type:  ClusterIP
+  ports:
+  - name:  be-autorizacao-http
+    port:  80
+    targetPort:  80    
+
+---
+
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   name:  ext-svc-autorizacao
+#   namespace: apps-space
+# spec:
+#   type:  NodePort
+#   ports:
+#   - name:  be-autorizacao-http
+#     port: 80
+#     targetPort: 80
+#     nodePort: 30010
+#   selector:
+#     name:  be-autorizacao
+#     app: autorizacao
+
+# kubectl port-forward be-autorizacao-58c4b5c899-6c5tz 5274:80
+# http://localhost:30008/WeatherForecast

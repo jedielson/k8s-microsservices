@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-catalogo
+  namespace: apps-space
+  labels:
+    tier: backend
+    app: catalogo
+spec:
+  selector:
+    matchLabels:
+      name:  be-catalogo
+      app: catalogo
+  strategy:
+    type: Recreate
+  replicas: 2
+  template:
+    metadata:
+      name: be-catalogo
+      labels:
+        app: catalogo
+        name:  be-catalogo
+    spec:
+      containers:
+      - name: be-catalogo
+        image: jedi31/catalogo:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet: 
+            path: /hc/alive
+            port: 80
+          initialDelaySeconds: 3 # only tests after 3 seconds
+          periodSeconds: 5 # frequency 
+          failureThreshold: 10 # makes 10 tests before completelly fail
+        readinessProbe:
+          httpGet:
+            path: /hc/health
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          failureThreshold: 10
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name:  svc-catalogo
+  namespace: apps-space
+spec:
+  selector:
+    name:  be-catalogo
+  type:  ClusterIP
+  ports:
+  - name:  be-catalogo-http
+    port:  80
+    targetPort:  80
+
+---
+
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   name:  ext-svc-catalogo
+#   namespace: apps-space
+# spec:
+#   type:  NodePort
+#   ports:
+#   - name:  be-catalogo-http
+#     port: 80
+#     targetPort: 80
+#     nodePort: 30009
+#   selector:
+#     name:  be-catalogo
+#     app: catalogo
+
+# kubectl port-forward be-catalogo-58c4b5c899-6c5tz 5274:80
+# http://localhost:30008/WeatherForecast
